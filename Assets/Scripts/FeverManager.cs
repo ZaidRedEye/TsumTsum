@@ -1,55 +1,52 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class FeverManager : MonoBehaviour {
-
-	Scrollbar scrollbar;
+public class FeverManager : MonoBehaviour
+{
+	public static event Action onFeverStart;
+	public static event Action onFeverEnd;
+	
+	[SerializeField] private float chargeUpRate = .03f;
+	[SerializeField] private float feverBonusMultiplier;
+	[SerializeField] private float feverDuration;
+	[SerializeField] private Scrollbar scrollbar;
 	float feverValue = 0; // when feverValue reaches 100, the fever mode begins
 	bool isFever = false;
 
-	Action onFeverStartCallBack;
+	private float _feverCountDownTimer;
+	public float FeverBonusMultiplier => feverBonusMultiplier;
 
-	void Start () {
-		GameObject canvas = GameObject.Find ("Canvas");
-		if (canvas != null) {
-			Transform feverGUI = canvas.transform.Find ("FeverGUI");
-			if (feverGUI != null) {
-				scrollbar = feverGUI.GetComponent<Scrollbar> ();
-			}
-		}
+	public float FeverDuration => feverDuration;
+
+
+	private void Start()
+	{
+		feverValue = 0;
+		SyncFeverGUI();
 	}
 
 	void Update () {
-		if (!isFever) {
-			feverValue -= Time.deltaTime * 2; // takes 50 sec to go from full to empty
-			if (feverValue < 0) {
-				feverValue = 0;
-			}
-		} else {
-			feverValue -= Time.deltaTime * 10; // takes 10 sec to go from full to empty
-			if (feverValue < 0) {
-				feverValue = 0;
-				OnFeverEnd ();
-			}
-		}
+		if(!isFever) return;
 
-		SyncFeverGUI ();
+		_feverCountDownTimer -= Time.deltaTime;
+		feverValue = _feverCountDownTimer / feverDuration;
+		SyncFeverGUI();
+		if(feverValue <= 0)
+			OnFeverEnd();
 	}
-
-	public void RegisterOnFeverCallBack(Action onFeverCallBack) {
-		this.onFeverStartCallBack = onFeverCallBack;
-	}
-
+	
 	public void AddFeverValue(int chain) {
-		if (!isFever) {
-			feverValue += 3.4f * (float)chain; // need to clear 30 blocks to enter fever mode
-			if (feverValue > 100) {
-				feverValue = 100;
-				OnFeverStart ();
-			}
+		if (isFever) return;
+		feverValue += chargeUpRate * chain; // need to clear 30 blocks to enter fever mode
+		feverValue = Mathf.Clamp01(feverValue);
+		SyncFeverGUI();
+		
+		if (feverValue >= 1) {
+			OnFeverStart ();
 		}
 	}
 
@@ -59,18 +56,18 @@ public class FeverManager : MonoBehaviour {
 
 	void OnFeverStart() {
 		isFever = true;
-		if (onFeverStartCallBack != null) {
-			onFeverStartCallBack ();
-		}
+		_feverCountDownTimer = feverDuration;
+		onFeverStart?.Invoke();
 	}
 
 	void OnFeverEnd() {
 		isFever = false;
+		onFeverEnd?.Invoke();
 	}
 
 	void SyncFeverGUI() {
-		if (scrollbar != null) {
-			scrollbar.size = feverValue / 100f;
+		if (scrollbar) {
+			scrollbar.size = feverValue;
 		}
 	}
 }

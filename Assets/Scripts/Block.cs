@@ -1,44 +1,89 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class Block : MonoBehaviour {
+public class Block : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler, IPointerUpHandler
+{
+	public event Action<Block> onPointerEnter;
+	public event Action<Block> onPointerDown;
+	public event Action<Block> onPointerUp;
 
-	public Sprite[] blockSprites;
+	[SerializeField] private SpriteRenderer spriteRenderer;
+	
+	[SerializeField] private Sprite[] blockSprites;
 
-	int blockType;
-	bool isOnChain;
+	int _blockType;
+	bool _isOnChain;
+
+	public bool IsOnChain
+	{
+		get { return _isOnChain; }
+		set
+		{
+			_isOnChain = value;
+			OnSetOnChain();
+		}
+	}
+
+	private void OnValidate()
+	{
+		if (!spriteRenderer)
+			spriteRenderer = GetComponent<SpriteRenderer>();
+		
+	}
 
 	void Start () {
-		blockType = UnityEngine.Random.Range (0, 5);
-		name = "Block_" + blockType;
-		GetComponent<SpriteRenderer> ().sprite = blockSprites[blockType];
+		_blockType = UnityEngine.Random.Range (0, blockSprites.Length);
+		name = $"Block_{_blockType}";
+		spriteRenderer.sprite = blockSprites[_blockType];
 
 		transform.position = new Vector3 (UnityEngine.Random.Range (-2.0f, 2.0f), 10, 0);
 		transform.eulerAngles = new Vector3 (0, 0, UnityEngine.Random.Range (-40f, 40f));
 	}
-
-	public void SetIsOnChain(bool isOnChain) {
-		this.isOnChain = isOnChain;
+	
+	private void OnDisable()
+	{
+		onPointerEnter = null;
+		onPointerDown = null;
+		onPointerUp = null;
 	}
 
-	public bool IsOnChain() {
-		return isOnChain;
+	private void OnSetOnChain()
+	{
+		if (_isOnChain)
+		{
+			SetTransparency(.5f);
+		}
+		else
+		{
+			SetTransparency(1);
+		}
 	}
 
 	public void SetTransparency(float transparency) {
-		Color color = GetComponent<SpriteRenderer> ().color;
+		Color color = spriteRenderer.color;
 		color.a = transparency;
-		GetComponent<SpriteRenderer> ().color = color;
+		spriteRenderer.color = color;
 	}
 
-	public static bool IsSameType(GameObject block1, GameObject block2) {
-		Block b1 = block1.GetComponent<Block> ();
-		Block b2 = block2.GetComponent<Block> ();
-		return (b1 != null && b2 != null && b1.blockType == b2.blockType);
+	public static bool IsSameType(Block block1, Block block2) {
+		return (block1 && block2 && block1._blockType == block2._blockType);
+	}
+	
+	public void OnPointerDown(PointerEventData eventData)
+	{
+		onPointerDown?.Invoke(this);
+	}
+	
+	public void OnPointerEnter(PointerEventData eventData)
+	{
+		onPointerEnter?.Invoke(this);
 	}
 
-	public static bool IsBlock(GameObject block) {
-		return (block.GetComponent<Block> () != null);
+	public void OnPointerUp(PointerEventData eventData)
+	{
+		onPointerUp?.Invoke(this);
 	}
 }
