@@ -1,73 +1,137 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 /**
  * ScoreManager takes care of the scoring system. If it finds a UI Text element named ScoreGUI,
  * it updates the ScoreGUI text, but it works fine without ScoreGUI.
  */
-public class ScoreManager : MonoBehaviour {
+public class ScoreManager : MonoBehaviour, IBlockClearListener 
+{
+	[SerializeField] private int blockClearListenerPriority;
+	[SerializeField] private int blockScore = 100;
+	[SerializeField] private int chainBonus = 50;
+	[SerializeField] private float comboTimeOut = 3f;
+	[SerializeField] private float comboMultiplier = .1f;
+	[SerializeField] private TextMeshProUGUI scoreText;
+	private int _score = 0;
+	private float _feverBonus = 1;
+	private float _comboBonus;
+	private int _comboCount;
+	private Coroutine _comboTimeOutRoutine;
+	
+	public int BlockClearListenerPriority => blockClearListenerPriority;
+	
+	void Start()
+	{
+		if (scoreText) scoreText.text = "";
+		FeverManager.OnFeverStart += OnFeverStart;
+		FeverManager.OnFeverEnd += OnFeverEnd;
+		GameFlowManager.OnGameStart += OnGameStart;
+		GameFlowManager.OnGameEnd += OnGameEnd;
+	}
 
-	static int blockScore = 50;
-	static int[] chainScoreMap = {
-		0, 0, 0, 300, 700, 1300, 2100, 3100, 4600, 6100, // chain 3 ~ 9
-		7600, 9600, 11600, 13600, 15600, 18100, 20600, 23100, 25600, 28100 // chain 10 ~ 19
-	};
+	private void OnDestroy()
+	{
+		FeverManager.OnFeverStart -= OnFeverStart;
+		FeverManager.OnFeverEnd -= OnFeverEnd;
+		GameFlowManager.OnGameStart -= OnGameStart;
+		GameFlowManager.OnGameEnd -= OnGameEnd;
+	}
 
-	Text scoreText;
-	int score = 0;
+	private void OnFeverStart(FeverManager feverManager)
+	{
+		_feverBonus = feverManager.FeverBonusMultiplier;
+	}
 
-	void Start() {
-		GameObject canvas = GameObject.Find ("Canvas");
-		if (canvas != null) {
-			Transform scoreGUI = canvas.transform.Find ("ScoreGUI");
-			if (scoreGUI != null) {
-				scoreText = scoreGUI.GetComponent<Text> ();
-				SyncScoreGUI ();
-			}
-		}
+	private void OnFeverEnd(FeverManager feverManager)
+	{
+		_feverBonus = 1;
+	}
+
+	private void OnGameStart()
+	{
+		_score = 0;
+		SyncScoreGUI();
+	}
+
+	private void OnGameEnd()
+	{
+		_feverBonus = 1;
+		_comboBonus = 1;
+		if(_comboTimeOutRoutine != null)
+			StopCoroutine(_comboTimeOutRoutine);
+	}
+
+	public void OnBlocksCleared(int chain)
+	{
+		IncrementCombo();
+		var score = CalculateScore(chain);
+		AddScore(score);
 	}
 
 	public void AddScore (int point) {
-		score = score + point;
+		_score = _score + point;
 		SyncScoreGUI ();
 	}
 
 	public int GetScore () {
+		return _score;
+	}
+
+	private void IncrementCombo()
+	{
+		++_comboCount;
+		if(_comboTimeOutRoutine != null)
+			StopCoroutine(_comboTimeOutRoutine);
+		
+		_comboTimeOutRoutine = StartCoroutine(ComboTimeOutTimer());
+	}
+
+	void SyncScoreGUI()
+	{
+		if (scoreText)
+			scoreText.text = _score.ToString();
+	}
+
+	public int CalculateScore(int chain)
+	{
+		var chainScore = CalculateChainScore (chain);
+		var comboBonus = CalculateComboBonus ();
+		return Mathf.CeilToInt(chainScore * _feverBonus * comboBonus);
+	}
+
+	private int CalculateChainScore(int chain)
+	{
+		var score = 0;
+		for (int i = 0; i < chain; i++)
+		{
+			score += blockScore + i * chainBonus;
+		}
+
 		return score;
 	}
 
-	void SyncScoreGUI() {
-		if (scoreText != null) {
-			scoreText.text = score.ToString ();
-		}
+	private IEnumerator ComboTimeOutTimer()
+	{
+		yield return new WaitForSeconds(comboTimeOut);
+		_comboCount = 0;
 	}
 
-	public static int CalculateScore(int chain, int combo, bool fever) {
-		int chainScore = CalculateChainScore (chain);
-		if (fever) {
-			return (int) ((blockScore * chain + chainScore) * 3);
-		} else {
-			float comboBonus = CalculateComboBonus (combo);
-			return (int) ((blockScore * chain + chainScore) * (1 + comboBonus));
-		}
+	private float CalculateComboBonus()
+	{
+		var comboBonus = 1f;
+
+		if (_comboCount <= 1) return comboBonus;
+
+		comboBonus += comboMultiplier * (_comboCount - 1);
+		return comboBonus;
 	}
 
-	static int CalculateChainScore(int chain) {
-		if (chain <= 19) {
-			return chainScoreMap [chain];
-		} else if (chain <= 29) {
-			return chainScoreMap [19] + 3000 * (chain - 19);
-		} else {
-			return chainScoreMap [19] + 3000 * 10 + 3500 * (chain - 29);
-		}
-	}
-
-	static float CalculateComboBonus(int combo) {
-		if (combo == 1) {
-			return 0;
-		} else {
-			combo = Mathf.Min (combo, 49);
-			return (combo + 9) * 0.01f;
-		}
+	public int CompareTo(IBlockClearListener other)
+	{
+		return BlockClearListenerPriority.CompareTo(other.BlockClearListenerPriority);
 	}
 }

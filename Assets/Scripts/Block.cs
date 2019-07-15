@@ -6,9 +6,9 @@ using UnityEngine.EventSystems;
 
 public class Block : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler, IPointerUpHandler
 {
-	public event Action<Block> onPointerEnter;
-	public event Action<Block> onPointerDown;
-	public event Action<Block> onPointerUp;
+	public static event Action<Block> OnBlockSelected;
+	public static event Action<Block> OnBlockEntered;
+	public static event Action<Block> OnBlockDeselected;
 
 	[SerializeField] private SpriteRenderer spriteRenderer;
 	
@@ -34,20 +34,14 @@ public class Block : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler, I
 		
 	}
 
-	void Start () {
-		_blockType = UnityEngine.Random.Range (0, blockSprites.Length);
+	void Start ()
+	{
+		_blockType = UnityEngine.Random.Range(0, blockSprites.Length);
 		name = $"Block_{_blockType}";
 		spriteRenderer.sprite = blockSprites[_blockType];
 
 		transform.position = new Vector3 (UnityEngine.Random.Range (-2.0f, 2.0f), 10, 0);
 		transform.eulerAngles = new Vector3 (0, 0, UnityEngine.Random.Range (-40f, 40f));
-	}
-	
-	private void OnDisable()
-	{
-		onPointerEnter = null;
-		onPointerDown = null;
-		onPointerUp = null;
 	}
 
 	private void OnSetOnChain()
@@ -74,16 +68,16 @@ public class Block : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler, I
 	
 	public void OnPointerDown(PointerEventData eventData)
 	{
-		onPointerDown?.Invoke(this);
+		OnBlockSelected?.Invoke(this);
 	}
 	
 	public void OnPointerEnter(PointerEventData eventData)
 	{
-		onPointerEnter?.Invoke(this);
+		OnBlockEntered?.Invoke(this);
 	}
 
 	public void OnPointerUp(PointerEventData eventData)
 	{
-		onPointerUp?.Invoke(this);
+		OnBlockDeselected?.Invoke(this);
 	}
 }

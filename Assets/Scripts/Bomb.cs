@@ -6,12 +6,20 @@ using UnityEngine.EventSystems;
 
 public class Bomb : MonoBehaviour, IPointerDownHandler
 {
-	public event Action<List<Block>> OnBombPointerDown;
-	private readonly Collider2D[] _results = new Collider2D[8];
+	[SerializeField] private float explosionRadius = 1.5f;
+	[SerializeField] private int targetLimit = 8;
+	public static event Action<Bomb, List<Block>> OnBombExploded;
+	private Collider2D[] _results;
 	private readonly List<Block> _hitBlocks = new List<Block>();
+
+	private void Awake()
+	{
+		_results = new Collider2D[targetLimit];
+	}
+
 	public void OnPointerDown(PointerEventData eventData)
 	{
-		var size = Physics2D.OverlapCircleNonAlloc(transform.position, 1.5f, _results);
+		var size = Physics2D.OverlapCircleNonAlloc(transform.position, explosionRadius, _results);
 		_hitBlocks.Clear();
 		for (int i = 0; i < size; i++)
 		{
@@ -21,12 +29,9 @@ public class Bomb : MonoBehaviour, IPointerDownHandler
 			_hitBlocks.Add(block);
 		}
 		
-		OnBombPointerDown?.Invoke(_hitBlocks);
+		OnBombExploded?.Invoke(this, _hitBlocks);
 		Destroy (gameObject);
 	}
 
-	private void OnDisable()
-	{
-		OnBombPointerDown = null;
-	}
+	
 }
