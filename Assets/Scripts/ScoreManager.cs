@@ -8,14 +8,15 @@ using UnityEngine.UI;
  * ScoreManager takes care of the scoring system. If it finds a UI Text element named ScoreGUI,
  * it updates the ScoreGUI text, but it works fine without ScoreGUI.
  */
-public class ScoreManager : MonoBehaviour, IBlockClearListener 
+public class ScoreManager : MonoBehaviour, IBlockClearListener
 {
+	public static event Action<int> OnScoreChanged;
+	
 	[SerializeField] private int blockClearListenerPriority;
 	[SerializeField] private int blockScore = 100;
 	[SerializeField] private int chainBonus = 50;
 	[SerializeField] private float comboTimeOut = 3f;
 	[SerializeField] private float comboMultiplier = .1f;
-	[SerializeField] private TextMeshProUGUI scoreText;
 	private int _score = 0;
 	private float _feverBonus = 1;
 	private float _comboBonus;
@@ -23,22 +24,31 @@ public class ScoreManager : MonoBehaviour, IBlockClearListener
 	private Coroutine _comboTimeOutRoutine;
 	
 	public int BlockClearListenerPriority => blockClearListenerPriority;
-	
+
+	public int Score
+	{
+		get => _score;
+		private set
+		{
+			_score = value;
+			OnScoreChanged?.Invoke(_score);
+		}
+	}
+
 	void Start()
 	{
-		if (scoreText) scoreText.text = "";
 		FeverManager.OnFeverStart += OnFeverStart;
 		FeverManager.OnFeverEnd += OnFeverEnd;
-		GameFlowManager.OnGameStart += OnGameStart;
-		GameFlowManager.OnGameEnd += OnGameEnd;
+		GameManager.OnRoundStart += OnRoundStart;
+		GameManager.OnRoundEnd += OnRoundEnd;
 	}
 
 	private void OnDestroy()
 	{
 		FeverManager.OnFeverStart -= OnFeverStart;
 		FeverManager.OnFeverEnd -= OnFeverEnd;
-		GameFlowManager.OnGameStart -= OnGameStart;
-		GameFlowManager.OnGameEnd -= OnGameEnd;
+		GameManager.OnRoundStart -= OnRoundStart;
+		GameManager.OnRoundEnd -= OnRoundEnd;
 	}
 
 	private void OnFeverStart(FeverManager feverManager)
@@ -51,13 +61,12 @@ public class ScoreManager : MonoBehaviour, IBlockClearListener
 		_feverBonus = 1;
 	}
 
-	private void OnGameStart()
+	private void OnRoundStart(int round)
 	{
-		_score = 0;
-		SyncScoreGUI();
+		Score = 0;
 	}
 
-	private void OnGameEnd()
+	private void OnRoundEnd(int round)
 	{
 		_feverBonus = 1;
 		_comboBonus = 1;
@@ -68,17 +77,7 @@ public class ScoreManager : MonoBehaviour, IBlockClearListener
 	public void OnBlocksCleared(int chain)
 	{
 		IncrementCombo();
-		var score = CalculateScore(chain);
-		AddScore(score);
-	}
-
-	public void AddScore (int point) {
-		_score = _score + point;
-		SyncScoreGUI ();
-	}
-
-	public int GetScore () {
-		return _score;
+		Score += CalculateScore(chain);
 	}
 
 	private void IncrementCombo()
@@ -88,12 +87,6 @@ public class ScoreManager : MonoBehaviour, IBlockClearListener
 			StopCoroutine(_comboTimeOutRoutine);
 		
 		_comboTimeOutRoutine = StartCoroutine(ComboTimeOutTimer());
-	}
-
-	void SyncScoreGUI()
-	{
-		if (scoreText)
-			scoreText.text = _score.ToString();
 	}
 
 	public int CalculateScore(int chain)

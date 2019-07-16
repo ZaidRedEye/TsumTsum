@@ -1,7 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
@@ -14,10 +16,12 @@ public class MenuController : MonoBehaviour
     [SerializeField] Image winSticker;
     [SerializeField] Image loseSticker;
     [SerializeField] GameObject stickerSelectScrollView;
-
+    [SerializeField] private GameObject playerSelectionScrollView;
+    [SerializeField] private Transform playerSelectionContentRoot;
+    
     SAVE_KEY selectedSticker;
 
-    private void Start()
+    private void Awake()
     {
         displayNameInputField.text = HackedSaveManager.GetString(SAVE_KEY.DISPLAY_NAME);
         selectedSticker = SAVE_KEY.INVALID;
@@ -33,6 +37,37 @@ public class MenuController : MonoBehaviour
         startSticker.sprite = stickerData.StickerSprites[HackedSaveManager.GetInt(SAVE_KEY.STICKER_START)];
         winSticker.sprite = stickerData.StickerSprites[HackedSaveManager.GetInt(SAVE_KEY.STICKER_WIN)];
         loseSticker.sprite = stickerData.StickerSprites[HackedSaveManager.GetInt(SAVE_KEY.STICKER_LOSE)];
+
+        if(playerSelectionContentRoot == null) return;
+        
+        var playerCnt = 0;
+        foreach (var playerGameLog in PlayerLogRepository.Instance.PlayerGameLogs)
+        {
+            if (playerCnt >= playerSelectionContentRoot.childCount)
+            {
+                Instantiate(playerSelectionContentRoot.GetChild(0).gameObject,
+                            playerSelectionContentRoot);
+            }
+
+            var entry = playerSelectionContentRoot.GetChild(playerCnt++);
+
+            foreach (var label in entry.GetComponentsInChildren<TextMeshProUGUI>(true))
+            {
+                switch (label.name)
+                {
+                    case "Name":
+                        label.text = playerGameLog.name;
+                        break;
+                    case "Date":
+                        label.text = new DateTime(playerGameLog.dateTime).ToString("g");
+                        break;
+                    case "Score":
+                        label.text = playerGameLog.totalScore.ToString();
+                        break;
+                }
+            }
+
+        }
     }
 
     public void OnDisplayNameOnSubmit()
@@ -43,6 +78,27 @@ public class MenuController : MonoBehaviour
     public void ChangeSticker(int key)
     {
         selectedSticker = (SAVE_KEY)key;
+    }
+
+    private void OnGameModeSelected(GameManager.GameModes gameMode)
+    {
+        GameManager.GameMode = gameMode;
+        SceneManager.LoadScene(1);
+    }
+
+    public void SelectRecordMode()
+    {
+        OnGameModeSelected(GameManager.GameModes.Record);
+    }
+
+    public void SelectRandomChallenge()
+    {
+        OnGameModeSelected(GameManager.GameModes.Versus);
+    }
+
+    public void SelectChallenger()
+    {
+        
     }
 
     public void SelectSticker(int stickerIndex)

@@ -24,15 +24,15 @@ public class BombSkill : MonoBehaviour, IBlockClearListener
     private void Awake()
     {
         _results = new Collider2D[targetLimit];
-        GameFlowManager.OnGameStart += OnGameStart;
-        GameFlowManager.OnGameEnd += OnGameEnd;
+        GameManager.OnRoundStart += OnRoundStart;
+        GameManager.OnRoundEnd += OnRoundEnd;
         skillButton.onClick.AddListener(ActivateSkill);
     }
 
     private void OnDestroy()
     {
-        GameFlowManager.OnGameStart -= OnGameStart;
-        GameFlowManager.OnGameEnd -= OnGameEnd;
+        GameManager.OnRoundStart -= OnRoundStart;
+        GameManager.OnRoundEnd -= OnRoundEnd;
     }
 
     private void Start()
@@ -42,7 +42,7 @@ public class BombSkill : MonoBehaviour, IBlockClearListener
     
    
 
-    private void OnGameStart()
+    private void OnRoundStart(int round)
     {
         if (skillButton)
         {
@@ -51,7 +51,7 @@ public class BombSkill : MonoBehaviour, IBlockClearListener
         _charge = 0;
     }
 
-    private void OnGameEnd()
+    private void OnRoundEnd(int round)
     {
 		
     }

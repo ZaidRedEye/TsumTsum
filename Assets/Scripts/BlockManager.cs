@@ -18,7 +18,7 @@ public class BlockManager: MonoBehaviour
 
 	ScoreManager scoreManager;
 	FeverManager feverManager;
-	GameFlowManager _gameFlowManager;
+	GameManager _gameManager;
 	RaycastHit2D[] _chainResults = new RaycastHit2D[2];
 
 	private bool _blockSelection;
@@ -35,8 +35,8 @@ public class BlockManager: MonoBehaviour
 		Bomb.OnBombExploded += OnBombExploded;
 		BombSkill.OnSkillActivated += OnBombSkillActivated;
 		BombSkill.OnSkillUsed += OnBombSkillUsed;
-		GameFlowManager.OnGameStart += OnGameStart;
-		GameFlowManager.OnGameEnd += OnGameEnd;
+		GameManager.OnRoundStart += OnRoundStart;
+		GameManager.OnRoundEnd += OnRoundEnd;
 		
 		_blockClearListeners.AddRange(GetComponentsInChildren<IBlockClearListener>());
 		_blockClearListeners.Sort();
@@ -50,17 +50,17 @@ public class BlockManager: MonoBehaviour
 		Bomb.OnBombExploded -= OnBombExploded;
 		BombSkill.OnSkillActivated -= OnBombSkillActivated;
 		BombSkill.OnSkillUsed -= OnBombSkillUsed;
-		GameFlowManager.OnGameStart -= OnGameStart;
-		GameFlowManager.OnGameEnd -= OnGameEnd;
+		GameManager.OnRoundStart -= OnRoundStart;
+		GameManager.OnRoundEnd -= OnRoundEnd;
 	}
 	
-	private void OnGameStart()
+	private void OnRoundStart(int round)
 	{
 		_firstBlock = null;
 		_lastBlock  = null;
 		StartCoroutine (GenerateBlocks (maxBlocks));
 	}
-	private void OnGameEnd()
+	private void OnRoundEnd(int round)
 	{
 		foreach (var spawnedBlock in _spawnedBlocks)
 		{

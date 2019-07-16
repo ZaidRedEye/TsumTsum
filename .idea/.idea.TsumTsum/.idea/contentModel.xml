@@ -26,11 +26,12 @@
           <e p="BombSkill.cs" t="Include" />
           <e p="CameraResizer.cs" t="Include" />
           <e p="FeverManager.cs" t="Include" />
-          <e p="GameFlowManager.cs" t="Include" />
+          <e p="GameManager.cs" t="Include" />
           <e p="HackedSaveManager.cs" t="Include" />
           <e p="MenuController.cs" t="Include" />
           <e p="PlayerController.cs" t="Include" />
-          <e p="PlayerlOG.cs" t="Include" />
+          <e p="PlayerGameLog.cs" t="Include" />
+          <e p="PlayerLogRepository.cs" t="Include" />
           <e p="ScoreManager.cs" t="Include" />
           <e p="StickerData.cs" t="Include" />
           <e p="StickerSelectController.cs" t="Include" />

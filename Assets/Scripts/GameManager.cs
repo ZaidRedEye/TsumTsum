@@ -1,5 +1,4 @@
-﻿//using System.Collections;
-//using System.Collections.Generic;
+﻿
 
 using System;
 using System.Collections;
@@ -8,17 +7,23 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/**
- * Timer counts down 1 min. If it finds a UI Text element named TimeGUI, it updates
- * the TimeGUI text, but it works fine without TimeGUI.
- */
-public class GameFlowManager : MonoBehaviour
-{
-	public static event Action OnIntroStart;
-	public static event Action OnGameStart;
-	public static event Action OnGameEnd;
-	public static event Action OnIntervalStart;
 
+public class GameManager : MonoBehaviour
+{
+	[Serializable]
+	public enum GameModes
+	{
+		Record,
+		Versus
+	}
+	public static event Action OnGameStart;
+	public static event Action<int> OnRoundStart;
+	public static event Action<int> OnRoundEnd;
+	public static event Action OnIntervalStart;
+	public static event Action OnGameEnd;
+
+	public static GameModes GameMode = GameModes.Record;
+	
 	[SerializeField] private TextMeshProUGUI timeText;
 	[SerializeField] private Image blocker;
 	[SerializeField] private TextMeshProUGUI gameStateText;
@@ -28,12 +33,18 @@ public class GameFlowManager : MonoBehaviour
 	[SerializeField] private int roundDuration; 
 	[SerializeField] private int intervalDuration;
 	[SerializeField] private float tickDuration;
+
 	private int _timeCounter = 0;
 	private int _roundCounter = 0;
 	private WaitForSeconds _waitForTimerTick;
 	private WaitForSeconds _waitForInterval;
 	private WaitForSeconds _waitForStartUp;
 	private float _gameStartStamp;
+
+	private void OnValidate()
+	{
+		
+	}
 
 	private void Awake()
 	{
@@ -42,7 +53,7 @@ public class GameFlowManager : MonoBehaviour
 		_waitForStartUp = new WaitForSeconds(introDuration);
 		
 		if(restartBtn)
-			restartBtn.onClick.AddListener(() => { SceneManager.LoadScene(SceneManager.GetActiveScene().name); });
+			restartBtn.onClick.AddListener(() =>  SceneManager.LoadScene(SceneManager.GetActiveScene().name));
 	}
 
 	private IEnumerator Start()
@@ -58,6 +69,8 @@ public class GameFlowManager : MonoBehaviour
 			if(_roundCounter < totalRounds)
 				yield return StartCoroutine(IntervalRoutine());
 		}
+		
+		OnGameEnd?.Invoke();
 		blocker.enabled = true;
 		gameStateText.enabled = false;
 		if(restartBtn)
@@ -70,26 +83,26 @@ public class GameFlowManager : MonoBehaviour
 		gameStateText.enabled = true;
 		gameStateText.text = "Get Ready";
 		timeText.text = "";
-		OnIntroStart?.Invoke();
+		OnGameStart?.Invoke();
 		yield return _waitForStartUp;
 	}
 
 	private IEnumerator GameRoundRoutine()
 	{
 		gameStateText.text = $"Start Round {_roundCounter}";
-		yield return new WaitForSeconds(0.6f);
+		yield return new WaitForSeconds(0.3f);
 		gameStateText.text = "";
 		gameStateText.enabled = false;
 		blocker.enabled = false;
 		_timeCounter = roundDuration;
 		_gameStartStamp = Time.time;
-		OnGameStart?.Invoke();
+		OnRoundStart?.Invoke(_roundCounter);
 		for (_timeCounter = roundDuration;  _timeCounter >= 0; --_timeCounter)
 		{
 			timeText.text = _timeCounter.ToString();
 			yield return _waitForTimerTick;
 		}
-		OnGameEnd?.Invoke();
+		OnRoundEnd?.Invoke(_roundCounter);
 	}
 	
 	private IEnumerator IntervalRoutine()
